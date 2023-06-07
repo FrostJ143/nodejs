@@ -1,95 +1,50 @@
-const http = require("http");
-const fs = require("fs");
-const fsPromises = require("fs").promises;
+const express = require("express");
+const app = express();
 const path = require("path");
-
-const logEvents = require("./logEvents");
-const EventEmmitter = require("events");
-const { log } = require("console");
-const { fi } = require("date-fns/locale");
-class MyEmitter extends EventEmmitter {}
-
-const myEmitter = new MyEmitter();
-
+const cors = require("cors");
 const PORT = process.env.PORT || 3500;
+const {logger} = require("./middlewares/logEvents");
+const errorHandler = require("./middlewares/errorHandler");
 
-const serveFile = async (filePath, contentType, res) => {
-    try {
-        const rawData = await fsPromises.readFile(filePath, 
-            contentType.includes("image") ? "" : "utf-8"
-        );
-        const data = contentType === "application/json" ? JSON.parse(rawData) : rawData;
-        res.writeHead(filePath.includes("404.html") ? 400 : 200, {"Content-type": contentType});
-        res.end(
-            contentType === "application/json" ? JSON.stringify(data) : data
-        );
-    } catch (error) {
-        myEmitter.emit("log", `${error.name}:${error.message}`, "errorLog.txt");
-        res.statusCode = 500;
-        res.end();
+// Use custom middleware
+app.use(logger);
+
+// Cross origin resource sharing
+const whileList = ["http://localhost:3500", "https://www.google.com"];
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        if (whileList.indexOf(origin) !== -1 || !origin) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
     }
 }
 
-const server = http.createServer((req, res) => {
-    myEmitter.emit("log", `${req.url}\t${req.method}\t`, "reqLog.txt");
-    const extension = path.extname(req.url);
+app.use(cors(corsOptions));
 
-    let contentType;
-    switch(extension) {
-        case ".css": 
-            contentType = "text/css";
-            break;
-        case ".js":
-            contentType = "text/javascript";
-            break;
-        case ".json":
-            contentType = "application/json";
-            break;
-        case ".jpg":
-            contentType = "image/jpeg";
-            break;
-        case ".png":
-            contentType = "image/png";
-            break;
-        case ".txt":
-            contentType = "text/plain";
-            break;
-        default: 
-            contentType = "text/html";
-    }
+// Get data from form
+app.use(express.urlencoded({extended: false}));
 
-    let filePath = (contentType === "text/html" && req.url === "/") 
-            ? path.join(__dirname, "views", "index.html") 
-            : (contentType === "text/html" && req.url.slice(-1) === "/")
-                ? path.join(__dirname, "views", req.url, "index.html")
-                : contentType === "text/html" 
-                    ? path.join(__dirname, "views", req.url)
-                    : path.join(__dirname, req.url); 
+// convert json to javascript object
+app.use(express.json());
 
-    // Can request file html without .html 
-    if (!extension && req.url.slice(-1) !== "/") filePath += ".html";
+// Serve static files
+app.use(express.static(path.join(__dirname, "public")));
 
-    const fileExists = fs.existsSync(filePath);
-    if (fileExists) {
-        serveFile(filePath, contentType, res);
-    } else {
-        switch (path.parse(filePath).base) {
-            case "old-page.html": 
-                res.writeHead(301, {"Location": "/new-page.html"});
-                res.end();
-                break;
-            case "www-page.html": 
-                res.writeHead(301, {"Location": "/"});
-                res.end();
-                break;
-            default: 
-                serveFile(path.join(__dirname, "views", "404.html"), "text/html", res);
-        }
-    }
-});
+// Use router
+app.use("/", require("./routes/root"));
+app.use("/subdir", require("./routes/subdir"));
+app.use("/employees", require("./routes/api/employees"));
 
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+app.get("/*", (req, res) => {
+    res.status(404).sendFile(path.join(__dirname, "views", "404.html"));
+})
 
-myEmitter.on("log", (msg, logFile) => logEvents(msg, logFile));
+app.use(errorHandler);
+
+app.listen(PORT, () => {
+    console.log(`Sever is running on port ${PORT}`);
+})
+
