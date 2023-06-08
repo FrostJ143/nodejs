@@ -1,8 +1,8 @@
-const whileList = ["http://localhost:3500", "https://www.google.com"];
+const whiteList = require("./allowedOrigins");
 
 const corsOptions = {
     origin: (origin, callback) => {
-        if (whileList.indexOf(origin) !== -1 || !origin) {
+        if (whiteList.indexOf(origin) !== -1 || !origin) {
             callback(null, true);
         } else {
             callback(new Error("Not allowed by CORS"));

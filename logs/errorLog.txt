@@ -1,3 +1,6 @@
 20230607	12:23:37	989fb8bf-1d12-461e-87f4-d20bd06d578c	TypeError:fsPromises.readFil is not a function
 20230607	17:51:00	1824142c-c0a3-4be4-85c9-1882d0ea340b	Error:Not allowed by CORS
 20230607	18:28:01	045d7250-5a9a-43f1-bcb4-4b94d61a2a7e	Error:ENOENT: no such file or directory, stat 'D:\Projects\nodejs\routes\views\index.html'
+20230608	17:32:48	2e7615a9-1eed-4774-ad5d-82c31d3d3789	ReferenceError:whileList is not defined
+20230608	18:00:19	52df6809-7696-480a-853f-9d443fb84df2	Error:Cannot set headers after they are sent to the client
+20230608	18:04:39	1fb6b8de-38d1-4a4c-b422-d131f2cb4810	Error:Cannot set headers after they are sent to the client
