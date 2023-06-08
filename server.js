@@ -1,7 +1,9 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const path = require("path");
 const cors = require("cors");
+const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const PORT = process.env.PORT || 3500;
 const { logger } = require("./middlewares/logEvents");
@@ -9,7 +11,10 @@ const errorHandler = require("./middlewares/errorHandler");
 const corsOptions = require("./configs/corsOptions");
 const verifyJWT = require("./middlewares/verifyJWT");
 const credentials = require("./middlewares/credentials");
+const connectDB = require("./configs/dbConn");
 
+// Connect to DB
+connectDB();
 
 // Use custom middleware
 app.use(logger);
@@ -47,6 +52,10 @@ app.get("/*", (req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-    console.log(`Sever is running on port ${PORT}`);
+mongoose.connection.once("open", () => {
+    console.log("Connect to DB");
+
+    app.listen(PORT, () => {
+        console.log(`Sever is running on port ${PORT}`);
+    });
 });
